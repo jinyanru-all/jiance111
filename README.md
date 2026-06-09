@@ -72,3 +72,4 @@ Vercel → Settings → Environment Variables：
 │   └── seen.json       # 去重记录（自动生成）
 └── vercel.json         # Vercel 配置（含 cron）
 ```
+
