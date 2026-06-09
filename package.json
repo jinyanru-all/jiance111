@@ -1,0 +1,25 @@
+{
+  "name": "zylm-news-monitor",
+  "version": "1.0.0",
+  "description": "专业联盟新闻实时监测小程序 - 定时抓取 nastia.caas.cn 联盟新闻并增量推送",
+  "main": "monitor.js",
+  "scripts": {
+    "start": "node monitor.js",
+    "once": "node monitor.js --once",
+    "dev": "node monitor.js --once --verbose",
+    "web": "node web.js",
+    "dashboard": "node web.js"
+  },
+  "keywords": [
+    "monitor",
+    "news",
+    "crawler"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@vercel/blob": "^2.4.0",
+    "axios": "^1.7.0",
+    "cheerio": "^1.0.0-rc.12",
+    "express": "^4.22.2"
+  }
+}

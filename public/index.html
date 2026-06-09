@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>国家农业科技创新联盟 · 实时监测面板</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  /* 顶部导航 */
+  .header {
+    background: linear-gradient(135deg, #0f4c3a 0%, #1a6b4a 50%, #0d3b2c 100%);
+    color: #fff;
+    padding: 18px 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,.15);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header h1 { font-size: 20px; font-weight: 600; letter-spacing: 1px; }
+  .header .subtitle { font-size: 13px; opacity: .75; margin-left: 12px; }
+  .header-actions { display: flex; gap: 10px; }
+  .btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all .2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-outline {
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.3);
+  }
+  .btn-outline:hover { background: rgba(255,255,255,.25); }
+  .btn-primary {
+    background: #ffd54f;
+    color: #1a1a2e;
+  }
+  .btn-primary:hover { background: #ffcd33; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* 主容器 */
+  .container { max-width: 1320px; margin: 0 auto; padding: 20px 24px; }
+
+  /* 统计卡片 */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    display: flex;
+    flex-direction: column;
+    transition: transform .15s;
+  }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-label { font-size: 13px; color: #888; margin-bottom: 6px; }
+  .stat-value { font-size: 32px; font-weight: 700; }
+  .stat-card.zylm .stat-value { color: #0f4c3a; }
+  .stat-card.cylm .stat-value { color: #1565c0; }
+  .stat-card.qylm .stat-value { color: #e65100; }
+  .stat-card.total .stat-value { color: #1a1a2e; }
+  .stat-update { font-size: 11px; color: #bbb; margin-top: 8px; }
+
+  /* 搜索和过滤栏 */
+  .toolbar {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    margin-bottom: 16px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .search-box {
+    flex: 1;
+    min-width: 240px;
+    position: relative;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 10px 14px 10px 40px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .search-box input:focus { border-color: #0f4c3a; }
+  .search-icon {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: #aaa;
+  }
+  .filter-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .filter-tab {
+    padding: 8px 18px;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    background: #fff;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .filter-tab:hover { border-color: #bbb; }
+  .filter-tab.active {
+    background: #0f4c3a;
+    color: #fff;
+    border-color: #0f4c3a;
+  }
+  .result-count { font-size: 13px; color: #888; margin-left: auto; white-space: nowrap; }
+
+  /* 新闻表格 */
+  .table-wrap {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    overflow: hidden;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead { background: #fafafa; }
+  th {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+    border-bottom: 2px solid #eee;
+  }
+  td {
+    padding: 14px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8faf9; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-zylm { background: #e6f4ec; color: #0f4c3a; }
+  .badge-cylm { background: #e3f2fd; color: #1565c0; }
+  .badge-qylm { background: #fff3e0; color: #e65100; }
+
+  .news-link { color: #1a1a2e; text-decoration: none; font-weight: 500; }
+  .news-link:hover { color: #0f4c3a; text-decoration: underline; }
+  .ext-link { color: #aaa; text-decoration: none; margin-left: 6px; font-size: 12px; }
+  .ext-link:hover { color: #666; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #bbb;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .hide-mobile { display: none; }
+    th, td { padding: 10px 8px; font-size: 13px; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .result-count { margin-left: 0; }
+  }
+
+  /* 加载动画 */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 通知 toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1a1a2e;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all .3s;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<div class="header">
+  <div class="header-inner">
+    <div style="display:flex; align-items:baseline;">
+      <h1>🏛 联盟名录 · 实时监测</h1>
+      <span class="subtitle">国家农业科技创新联盟</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" onclick="refreshData()" id="btn-refresh">
+        🔄 刷新数据
+      </button>
+      <button class="btn btn-primary" onclick="triggerScrape()" id="btn-scrape">
+        ⚡ 手动抓取
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 主容器 -->
+<div class="container">
+
+  <!-- 统计卡片 -->
+  <div class="stats-row">
+    <div class="stat-card total">
+      <div class="stat-label">📊 全部联盟</div>
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-update" id="stat-update">-</div>
+    </div>
+    <div class="stat-card zylm">
+      <div class="stat-label">🏛 专业联盟</div>
+      <div class="stat-value" id="stat-zylm">0</div>
+    </div>
+    <div class="stat-card cylm">
+      <div class="stat-label">🏭 产业联盟</div>
+      <div class="stat-value" id="stat-cylm">0</div>
+    </div>
+    <div class="stat-card qylm">
+      <div class="stat-label">🌍 区域联盟</div>
+      <div class="stat-value" id="stat-qylm">0</div>
+    </div>
+  </div>
+
+  <!-- 搜索 & 过滤 -->
+  <div class="toolbar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="搜索联盟名称、牵头单位、理事长…" oninput="renderTable()">
+    </div>
+    <div class="filter-tabs" id="filter-tabs">
+      <button class="filter-tab active" data-cat="all">全部</button>
+      <button class="filter-tab" data-cat="专业联盟">专业联盟</button>
+      <button class="filter-tab" data-cat="产业联盟">产业联盟</button>
+      <button class="filter-tab" data-cat="区域联盟">区域联盟</button>
+    </div>
+    <span class="result-count" id="result-count">-</span>
+  </div>
+
+  <!-- 数据表格 -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>类别</th>
+          <th>联盟名称</th>
+          <th>启动时间</th>
+          <th class="hide-mobile">牵头单位</th>
+          <th class="hide-mobile">理事长</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="news-tbody">
+        <tr><td colspan="6" class="empty-state"><div class="icon">⏳</div>加载中…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- toast 提示 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== 全局状态 ====================
+
+let allNews = [];
+let currentCategory = 'all';
+
+// ==================== 初始化 ====================
+
+// 分类标签点击事件
+document.getElementById('filter-tabs').addEventListener('click', e => {
+  if (e.target.classList.contains('filter-tab')) {
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    e.target.classList.add('active');
+    currentCategory = e.target.dataset.cat;
+    renderTable();
+  }
+});
+
+// 页面加载时拉取数据
+refreshData();
+
+// 每 60 秒自动刷新
+setInterval(refreshData, 60_000);
+
+// ==================== 数据获取 ====================
+
+async function refreshData() {
+  try {
+    const [newsRes, statsRes] = await Promise.all([
+      fetch('/api/news'),
+      fetch('/api/stats'),
+    ]);
+    allNews = await newsRes.json();
+    const stats = await statsRes.json();
+
+    // 更新统计卡片
+    document.getElementById('stat-total').textContent = stats.total || 0;
+    document.getElementById('stat-zylm').textContent = stats.categories['专业联盟'] || 0;
+    document.getElementById('stat-cylm').textContent = stats.categories['产业联盟'] || 0;
+    document.getElementById('stat-qylm').textContent = stats.categories['区域联盟'] || 0;
+    if (stats.latestUpdate) {
+      document.getElementById('stat-update').textContent = `最近更新: ${stats.latestUpdate}`;
+    }
+
+    renderTable();
+  } catch (err) {
+    console.error('获取数据失败:', err);
+    document.getElementById('news-tbody').innerHTML =
+      '<tr><td colspan="6" class="empty-state"><div class="icon">❌</div>数据加载失败，请确认 Web 服务已启动<br><small>运行: node web.js</small></td></tr>';
+  }
+}
+
+// ==================== 表格渲染 ====================
+
+function renderTable() {
+  const searchText = (document.getElementById('search-input').value || '').trim().toLowerCase();
+  let items = allNews;
+
+  // 分类过滤
+  if (currentCategory !== 'all') {
+    items = items.filter(n => n.category === currentCategory);
+  }
+
+  // 搜索过滤
+  if (searchText) {
+    items = items.filter(n =>
+      (n.title && n.title.toLowerCase().includes(searchText)) ||
+      (n.org && n.org.toLowerCase().includes(searchText)) ||
+      (n.chair && n.chair.toLowerCase().includes(searchText))
+    );
+  }
+
+  document.getElementById('result-count').textContent = `共 ${items.length} 条`;
+
+  const tbody = document.getElementById('news-tbody');
+
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="icon">📭</div>暂无数据</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map(n => {
+    const catClass = {
+      '专业联盟': 'badge-zylm',
+      '产业联盟': 'badge-cylm',
+      '区域联盟': 'badge-qylm',
+    }[n.category] || '';
+
+    return `
+      <tr>
+        <td><span class="badge ${catClass}">${esc(n.category)}</span></td>
+        <td>
+          <a class="news-link" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>
+          <a class="ext-link" href="${esc(n.url)}" target="_blank" rel="noopener" title="在新标签打开">↗</a>
+        </td>
+        <td>${esc(n.date || '-')}</td>
+        <td class="hide-mobile">${esc(n.org || '-')}</td>
+        <td class="hide-mobile">${esc(n.chair || '-')}</td>
+        <td>
+          <a href="${esc(n.url)}" target="_blank" rel="noopener" style="font-size:13px;color:#0f4c3a;text-decoration:none;">查看 →</a>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// ==================== 手动抓取 ====================
+
+async function triggerScrape() {
+  const btn = document.getElementById('btn-scrape');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> 触发中…';
+
+  try {
+    const res = await fetch('/api/scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+
+    if (data.status === 'done') {
+      showToast('✅ ' + (data.message || '抓取完成，共 ' + data.total + ' 条'));
+      refreshData();
+    } else if (data.status === 'auto') {
+      showToast('数据由 cron 每 5 分钟自动刷新，页面每 60 秒同步一次');
+      setTimeout(refreshData, 3000);
+    } else {
+      showToast(data.message || '已触发');
+      setTimeout(refreshData, 5000);
+    }
+  } catch (err) {
+    showToast('请稍后刷新页面查看最新数据');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⚡ 手动刷新';
+  }
+}
+
+// ==================== 工具函数 ====================
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+</script>
+
+</body>
+</html>
