@@ -487,7 +487,6 @@
 
     // ==================== 初始化 ====================
 
-    // 分类标签点击事件
     document.getElementById('filter-tabs').addEventListener('click', e => {
       if (e.target.classList.contains('filter-tab')) {
         document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -497,22 +496,23 @@
       }
     });
 
-    // 页面加载时拉取数据
     refreshData();
-
-    // 每 60 秒自动刷新
     setInterval(refreshData, 60_000);
 
-    // ==================== 数据获取 ====================
+    // ==================== 数据获取（纯静态，直接读 JSON 文件） ====================
 
     async function refreshData() {
       try {
-        const [newsRes, statsRes] = await Promise.all([
-          fetch('/api/news'),
-          fetch('/api/stats'),
-        ]);
-        allNews = await newsRes.json();
-        const stats = await statsRes.json();
+        // 直接加载 data/news.json（无需 API）
+        const resp = await fetch('data/news.json?_=' + Date.now());
+        allNews = await resp.json();
+
+        // 计算统计
+        const stats = { total: allNews.length, categories: {}, latestUpdate: '' };
+        for (const n of allNews) {
+          stats.categories[n.category] = (stats.categories[n.category] || 0) + 1;
+          if (n.lastSeen > stats.latestUpdate) stats.latestUpdate = n.lastSeen;
+        }
 
         // 更新统计卡片
         document.getElementById('stat-total').textContent = stats.total || 0;
@@ -520,14 +520,14 @@
         document.getElementById('stat-cylm').textContent = stats.categories['产业联盟'] || 0;
         document.getElementById('stat-qylm').textContent = stats.categories['区域联盟'] || 0;
         if (stats.latestUpdate) {
-          document.getElementById('stat-update').textContent = `最近更新: ${stats.latestUpdate}`;
+          document.getElementById('stat-update').textContent = '最近更新: ' + stats.latestUpdate;
         }
 
         renderTable();
       } catch (err) {
-        console.error('获取数据失败:', err);
+        console.error('加载数据失败:', err);
         document.getElementById('news-tbody').innerHTML =
-          '<tr><td colspan="6" class="empty-state"><div class="icon">❌</div>数据加载失败，请确认 Web 服务已启动<br><small>运行: node web.js</small></td></tr>';
+          '<tr><td colspan="6" class="empty-state"><div class="icon">❌</div>数据加载失败，请稍后刷新</td></tr>';
       }
     }
 
@@ -537,12 +537,9 @@
       const searchText = (document.getElementById('search-input').value || '').trim().toLowerCase();
       let items = allNews;
 
-      // 分类过滤
       if (currentCategory !== 'all') {
         items = items.filter(n => n.category === currentCategory);
       }
-
-      // 搜索过滤
       if (searchText) {
         items = items.filter(n =>
           (n.title && n.title.toLowerCase().includes(searchText)) ||
@@ -551,37 +548,27 @@
         );
       }
 
-      document.getElementById('result-count').textContent = `共 ${items.length} 条`;
+      document.getElementById('result-count').textContent = '共 ' + items.length + ' 条';
 
       const tbody = document.getElementById('news-tbody');
-
       if (items.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="icon">📭</div>暂无数据</td></tr>';
         return;
       }
 
       tbody.innerHTML = items.map(n => {
-        const catClass = {
-          '专业联盟': 'badge-zylm',
-          '产业联盟': 'badge-cylm',
-          '区域联盟': 'badge-qylm',
-        }[n.category] || '';
-
-        return `
-      <tr>
-        <td><span class="badge ${catClass}">${esc(n.category)}</span></td>
-        <td>
-          <a class="news-link" href="${esc(n.url)}" target="_blank" rel="noopener">${esc(n.title)}</a>
-          <a class="ext-link" href="${esc(n.url)}" target="_blank" rel="noopener" title="在新标签打开">↗</a>
-        </td>
-        <td>${esc(n.date || '-')}</td>
-        <td class="hide-mobile">${esc(n.org || '-')}</td>
-        <td class="hide-mobile">${esc(n.chair || '-')}</td>
-        <td>
-          <a href="${esc(n.url)}" target="_blank" rel="noopener" style="font-size:13px;color:#0f4c3a;text-decoration:none;">查看 →</a>
-        </td>
-      </tr>
-    `;
+        const catClass = { '专业联盟': 'badge-zylm', '产业联盟': 'badge-cylm', '区域联盟': 'badge-qylm' }[n.category] || '';
+        return (
+          '<tr>' +
+          '<td><span class="badge ' + catClass + '">' + esc(n.category) + '</span></td>' +
+          '<td><a class="news-link" href="' + esc(n.url) + '" target="_blank" rel="noopener">' + esc(n.title) + '</a>' +
+          '<a class="ext-link" href="' + esc(n.url) + '" target="_blank" rel="noopener" title="在新标签打开">↗</a></td>' +
+          '<td>' + esc(n.date || '-') + '</td>' +
+          '<td class="hide-mobile">' + esc(n.org || '-') + '</td>' +
+          '<td class="hide-mobile">' + esc(n.chair || '-') + '</td>' +
+          '<td><a href="' + esc(n.url) + '" target="_blank" rel="noopener" style="font-size:13px;color:#0f4c3a;text-decoration:none;">查看 →</a></td>' +
+          '</tr>'
+        );
       }).join('');
     }
 
@@ -605,7 +592,7 @@
       el.textContent = msg;
       el.classList.add('show');
       clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+      toastTimer = setTimeout(function () { el.classList.remove('show'); }, 2500);
     }
   </script>
 

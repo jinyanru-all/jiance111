@@ -2,7 +2,6 @@ name: 联盟新闻定时抓取
 
 on:
   schedule:
-    # 每 5 分钟抓取一次
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
@@ -27,7 +26,7 @@ jobs:
       - name: 执行抓取
         run: node monitor.js --once
 
-      - name: 提交并推送更新
+      - name: 提交并推送更新（GitHub）
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -37,4 +36,14 @@ jobs:
             git add data/news.json data/seen.json
             git commit -m "📡 自动抓取 $(date -u '+%m-%d %H:%M')"
             git push
+          fi
+
+      - name: 同步到 Gitee
+        if: success()
+        run: |
+          if [ -n "${{ secrets.GITEE_TOKEN }}" ]; then
+            git remote add gitee "https://jin-yanr:${{ secrets.GITEE_TOKEN }}@gitee.com/jin-yanr/newsall.git" 2>/dev/null || true
+            git push gitee main
+          else
+            echo "未设置 GITEE_TOKEN，跳过 Gitee 同步"
           fi
